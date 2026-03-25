@@ -7,7 +7,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, subtext, icon }: StatCardProps) {
   return (
-    <div className="rounded-xl bg-white border border-[#E8DDD4] p-6">
+    <div className="rounded-xl p-6" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E8DDD4' }}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-[#8C7B6E]">{label}</p>

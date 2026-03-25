@@ -18,13 +18,16 @@ import {
 import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
 import slugify from 'slugify'
+import { normalizePgConnectionString } from '../src/lib/normalize-pg-connection-string'
 
 const connectionString = process.env.DATABASE_URL
 if (!connectionString) {
   throw new Error('DATABASE_URL is not set')
 }
 const db = new PrismaClient({
-  adapter: new PrismaPg({ connectionString }),
+  adapter: new PrismaPg({
+    connectionString: normalizePgConnectionString(connectionString),
+  }),
 })
 
 function slug(text: string) {
