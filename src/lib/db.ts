@@ -13,6 +13,10 @@ function createPrismaClient() {
   }
   const adapter = new PrismaPg({
     connectionString: normalizePgConnectionString(connectionString),
+    // Neon cold starts + TLS can exceed default pg timeouts; avoid ETIMEDOUT on first queries.
+    connectionTimeoutMillis: 60_000,
+    max: 15,
+    idleTimeoutMillis: 30_000,
   })
   return new PrismaClient({
     adapter,
