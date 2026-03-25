@@ -2,8 +2,18 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { hashPassword } from '@/lib/auth.helpers'
 import { RegisterSchema } from '@/lib/validations/auth'
+import { authRateLimit, getIp } from '@/lib/rate-limit'
 
 export async function POST(request: Request) {
+  const ip = getIp(request)
+  const { success } = await authRateLimit.limit(ip)
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    )
+  }
+
   try {
     const body = await request.json()
     const parsed = RegisterSchema.safeParse(body)

@@ -10,15 +10,27 @@ export const metadata: Metadata = {
     template: '%s | Mercanio',
   },
   description:
-    'A full-stack multi-vendor marketplace platform. Discover unique products from independent vendors.',
-  keywords: ['marketplace', 'multi-vendor', 'ecommerce', 'shop'],
+    'Discover unique handcrafted products from independent vendors. Mercanio is a modern multi-vendor marketplace built for makers and thoughtful buyers.',
+  keywords: ['marketplace', 'handmade', 'independent vendors', 'shop', 'ecommerce'],
+  authors: [{ name: 'Mercanio' }],
+  creator: 'Mercanio',
+  metadataBase: new URL(process.env.NEXTAUTH_URL ?? 'http://localhost:3000'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://mercanio.com',
+    url: '/',
     siteName: 'Mercanio',
     title: 'Mercanio — The Modern Marketplace',
     description: 'Discover unique products from independent vendors.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Mercanio — The Modern Marketplace',
+    description: 'Discover unique products from independent vendors.',
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 }
 

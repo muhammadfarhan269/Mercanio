@@ -1,40 +1,54 @@
 import { db } from '@/lib/db'
 import { OrderStatus, ProductStatus, VendorStatus } from '@prisma/client'
 import { unstable_cache } from 'next/cache'
+import { redis } from '@/lib/redis'
 
-// Featured products — active, marked as featured, with first image and vendor
-export const getFeaturedProducts = unstable_cache(
-  async (limit = 8) => {
-    return db.product.findMany({
-      where: {
-        status: ProductStatus.ACTIVE,
-        isFeatured: true,
-        deletedAt: null,
-        variants: { some: { isActive: true, stock: { gt: 0 } } },
+async function fetchFeaturedProducts(limit: number) {
+  return db.product.findMany({
+    where: {
+      status: ProductStatus.ACTIVE,
+      isFeatured: true,
+      deletedAt: null,
+      variants: { some: { isActive: true, stock: { gt: 0 } } },
+    },
+    include: {
+      images: { where: { isPrimary: true }, take: 1 },
+      vendor: { select: { storeName: true, slug: true } },
+      variants: {
+        where: { isActive: true },
+        orderBy: { price: 'asc' },
+        take: 1,
+        select: { price: true, compareAtPrice: true },
       },
-      include: {
-        images: {
-          where: { isPrimary: true },
-          take: 1,
-        },
-        vendor: {
-          select: { storeName: true, slug: true },
-        },
-        variants: {
-          where: { isActive: true },
-          orderBy: { price: 'asc' },
-          take: 1,
-          select: { price: true, compareAtPrice: true },
-        },
-        _count: { select: { reviews: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    })
-  },
-  ['featured-products'],
-  { revalidate: 300 }
-)
+      _count: { select: { reviews: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+  })
+}
+
+export async function getFeaturedProducts(limit = 8) {
+  const cacheKey = `mercanio:featured-products:${limit}`
+
+  try {
+    const cached = await redis.get(cacheKey)
+    if (cached) {
+      return cached as Awaited<ReturnType<typeof fetchFeaturedProducts>>
+    }
+  } catch {
+    // Cache miss or Redis error — fall through to DB
+  }
+
+  const data = await fetchFeaturedProducts(limit)
+
+  try {
+    await redis.set(cacheKey, data, { ex: 300 })
+  } catch {
+    // Cache write failure is non-fatal
+  }
+
+  return data
+}
 
 // All active categories
 export const getCategories = unstable_cache(
@@ -141,27 +155,54 @@ export const getHeroBanner = unstable_cache(
   { revalidate: 600 }
 )
 
-// Platform stats for social proof
-export const getPlatformStats = unstable_cache(
-  async () => {
-    const [productCount, vendorCount, orderCount] = await Promise.all([
-      db.product.count({ where: { status: ProductStatus.ACTIVE, deletedAt: null } }),
-      db.vendor.count({ where: { status: VendorStatus.ACTIVE, deletedAt: null } }),
-      db.order.count({
-        where: {
-          status: {
-            in: [
-              OrderStatus.CONFIRMED,
-              OrderStatus.PROCESSING,
-              OrderStatus.SHIPPED,
-              OrderStatus.DELIVERED,
-            ],
-          },
+async function fetchPlatformStats() {
+  const [productCount, vendorCount, orderCount] = await Promise.all([
+    db.product.count({ where: { status: ProductStatus.ACTIVE, deletedAt: null } }),
+    db.vendor.count({ where: { status: VendorStatus.ACTIVE, deletedAt: null } }),
+    db.order.count({
+      where: {
+        status: {
+          in: [
+            OrderStatus.CONFIRMED,
+            OrderStatus.PROCESSING,
+            OrderStatus.SHIPPED,
+            OrderStatus.DELIVERED,
+          ],
         },
-      }),
-    ])
-    return { productCount, vendorCount, orderCount }
-  },
-  ['platform-stats'],
-  { revalidate: 3600 }
-)
+      },
+    }),
+  ])
+  return { productCount, vendorCount, orderCount }
+}
+
+export async function getPlatformStats() {
+  const cacheKey = 'mercanio:platform-stats'
+
+  try {
+    const cached = await redis.get(cacheKey)
+    if (cached) {
+      return cached as Awaited<ReturnType<typeof fetchPlatformStats>>
+    }
+  } catch {
+    // fall through to DB
+  }
+
+  const data = await fetchPlatformStats()
+
+  try {
+    await redis.set(cacheKey, data, { ex: 3600 })
+  } catch {
+    // non-fatal
+  }
+
+  return data
+}
+
+export async function invalidateStorefrontCache() {
+  try {
+    await redis.del('mercanio:platform-stats')
+    // Featured products cache will expire naturally via TTL
+  } catch {
+    // Non-fatal
+  }
+}

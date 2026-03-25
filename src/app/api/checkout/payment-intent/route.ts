@@ -3,6 +3,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { stripe } from '@/lib/stripe'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
+import { checkoutRateLimit, getIp } from '@/lib/rate-limit'
 
 const CartItemSchema = z.object({
   variantId: z.string(),
@@ -20,6 +21,15 @@ const RequestSchema = z.object({
 })
 
 export async function POST(request: Request) {
+  const ip = getIp(request)
+  const { success } = await checkoutRateLimit.limit(ip)
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Too many checkout attempts. Please try again later.' },
+      { status: 429 }
+    )
+  }
+
   try {
     const session = await auth()
     const body = await request.json()
