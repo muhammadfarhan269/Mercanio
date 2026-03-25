@@ -51,7 +51,7 @@ export function FulfillmentSelect({ itemId, currentStatus }: FulfillmentSelectPr
         <SelectTrigger className="h-8 w-36 rounded-lg border-[#E8DDD4] text-xs">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-50 rounded-lg border border-[#E8DDD4] bg-white shadow-lg">
           {STATUSES.map((s) => (
             <SelectItem key={s.value} value={s.value} className="text-xs">
               {s.label}

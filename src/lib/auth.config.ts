@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from 'next-auth'
 
 export const authConfig: NextAuthConfig = {
-  // Allow localhost and deployment hosts when AUTH_URL doesn’t match (e.g. `next start` on :3000).
+  // Allow localhost and deployment hosts when AUTH_URL doesn't match (e.g. `next start` on :3000).
   // Set AUTH_URL to your canonical URL in production; use AUTH_TRUST_HOST on platforms that need it.
   trustHost: true,
   pages: {
@@ -43,6 +43,14 @@ export const authConfig: NextAuthConfig = {
       }
 
       return true
+    },
+    // Session callback lives here so the proxy (middleware) also maps
+    // token.role -> session.user.role. Without this the authorized callback
+    // above always sees role === undefined and redirects vendors to /.
+    session({ session, token }) {
+      if (token.id) session.user.id = token.id as string
+      if (token.role) session.user.role = token.role as string
+      return session
     },
   },
   providers: [],

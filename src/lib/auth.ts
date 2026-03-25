@@ -73,6 +73,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
+    ...authConfig.callbacks,
     async jwt({ token, user, trigger, session }) {
       // On initial sign in, attach role and id to token
       if (user) {
@@ -100,11 +101,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
 
       return token
-    },
-    async session({ session, token }) {
-      if (token.id) session.user.id = token.id as string
-      if (token.role) session.user.role = token.role as string
-      return session
     },
     async signIn({ user, account }) {
       // Block OAuth sign-in for deactivated/deleted accounts

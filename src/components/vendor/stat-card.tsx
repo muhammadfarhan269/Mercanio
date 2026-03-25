@@ -7,7 +7,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, subtext, icon }: StatCardProps) {
   return (
-    <div className="rounded-xl bg-[#F5F0EB] p-6">
+    <div className="rounded-xl bg-white border border-[#E8DDD4] p-6">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-[#8C7B6E]">{label}</p>
@@ -16,7 +16,7 @@ export function StatCard({ label, value, subtext, icon }: StatCardProps) {
             <p className="mt-1 text-xs text-[#8C7B6E]">{subtext}</p>
           )}
         </div>
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white text-[#C2692A]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F5F0EB] text-[#C2692A]">
           {icon}
         </div>
       </div>
