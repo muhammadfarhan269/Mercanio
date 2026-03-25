@@ -4,23 +4,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { loadStripe } from '@stripe/stripe-js'
 import { Elements } from '@stripe/react-stripe-js'
 import { z } from 'zod'
 import { ChevronRight, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
 import { useCartStore } from '@/lib/store/cart.store'
-import { CheckoutSchema, type CheckoutInput } from '@/lib/validations/checkout'
+import { getStripe } from '@/lib/stripe-client'
+import { CheckoutSchema } from '@/lib/validations/checkout'
 import { AddressForm } from './address-form'
 import { StripePaymentForm } from './stripe-payment-form'
 import { OrderSummaryPanel } from './order-summary-panel'
 import { cn } from '@/lib/utils'
-
-if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-  throw new Error('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is not set')
-}
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 
 type Step = 'address' | 'payment'
 
@@ -44,6 +38,7 @@ export function CheckoutClient() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [addressData, setAddressData] = useState<z.input<typeof CheckoutSchema>['address'] | null>(null)
+  const [paymentComplete, setPaymentComplete] = useState(false)
 
   const form = useForm<z.input<typeof CheckoutSchema>>({
     resolver: zodResolver(CheckoutSchema),
@@ -55,10 +50,10 @@ export function CheckoutClient() {
 
   // Redirect to cart if empty
   useEffect(() => {
-    if (items.length === 0) {
+    if (items.length === 0 && !paymentComplete) {
       router.push('/cart')
     }
-  }, [items, router])
+  }, [items, router, paymentComplete])
 
   const handleAddressSubmit = async (data: z.input<typeof CheckoutSchema>) => {
     setIsCreatingIntent(true)
@@ -131,6 +126,7 @@ export function CheckoutClient() {
 
   const handlePaymentSuccess = useCallback(
     (intentId: string) => {
+      setPaymentComplete(true)
       clearCart()
       router.push(`/checkout/success?payment_intent=${intentId}`)
     },
@@ -265,7 +261,8 @@ export function CheckoutClient() {
                   )}
 
                   <Elements
-                    stripe={stripePromise}
+                    key={clientSecret}
+                    stripe={getStripe()}
                     options={{
                       clientSecret,
                       appearance: {

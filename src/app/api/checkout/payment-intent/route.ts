@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/client'
 import { stripe } from '@/lib/stripe'
 import { auth } from '@/lib/auth'
 import { z } from 'zod'
@@ -100,6 +101,18 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('[PAYMENT_INTENT]', error)
+    if (
+      error instanceof PrismaClientKnownRequestError &&
+      (error.code === 'ETIMEDOUT' || error.code === 'P1001')
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Could not reach the database (connection timed out). If you use Neon, open the dashboard to wake the project or retry after a cold start.',
+        },
+        { status: 503 }
+      )
+    }
     return NextResponse.json(
       { error: 'Failed to create payment intent' },
       { status: 500 }

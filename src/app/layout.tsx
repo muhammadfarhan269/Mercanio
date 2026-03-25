@@ -29,7 +29,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="bg-[#F5F0EB] text-[#1A1410] antialiased">
+      <body
+        suppressHydrationWarning
+        className="bg-[#F5F0EB] text-[#1A1410] antialiased"
+      >
         <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
